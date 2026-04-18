@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cloudflare": "CI=true opennextjs-cloudflare build && cp -r .open-next/assets/. .open-next/ && mv .open-next/worker.js .open-next/_worker.js",
+    "build:cloudflare": "CI=true opennextjs-cloudflare build && cp -rv .open-next/assets/. .open-next/ && mv .open-next/worker.js .open-next/_worker.js && echo '{\"version\":1,\"include\":[\"/*\"],\"exclude\":[\"/_next/*\",\"/favicon.ico\"]}' > .open-next/_routes.json",
     "deploy:cloudflare": "CI=true opennextjs-cloudflare deploy"
   },
   "dependencies": {
