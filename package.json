@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cloudflare": "CI=true opennextjs-cloudflare build && cp -r .open-next/assets/* .open-next/ && mv .open-next/worker.js .open-next/_worker.js && rm -rf .open-next/assets",
+    "build:cloudflare": "CI=true opennextjs-cloudflare build && cp -r .open-next/assets/. .open-next/ && mv .open-next/worker.js .open-next/_worker.js",
     "deploy:cloudflare": "CI=true opennextjs-cloudflare deploy"
   },
   "dependencies": {
