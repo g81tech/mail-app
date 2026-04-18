@@ -7,7 +7,7 @@
   ],
   "main": ".open-next/_worker.js",
   "assets": {
-    "directory": ".open-next/assets",
+    "directory": ".open-next",
     "binding": "ASSETS"
   }
 }
