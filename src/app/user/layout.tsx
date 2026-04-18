@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/presentation/state/auth.context";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LogOut, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,8 +10,6 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const { isAuthenticated, role, logout, isLoading, greetingMessage } = useAuth();
   const router = useRouter();
   // Controla se o guard de role já resolveu — evita flash de conteúdo e chamadas duplicadas
-  const [guardPassed, setGuardPassed] = useState(false);
-
   useEffect(() => {
     if (isLoading) return;
 
@@ -22,15 +20,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
     if (role?.key === "admin-user") {
       router.replace("/admin/accounts");
-      return;
     }
-
-    // Somente aqui é seguro renderizar o children
-    setGuardPassed(true);
   }, [isAuthenticated, role, isLoading, router]);
 
-  // Spinner enquanto carrega ou redireciona
-  if (!guardPassed) {
+  if (isLoading || !isAuthenticated || role?.key === "admin-user") {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-slate-950 text-blue-400">
         <div className="w-12 h-12 border-4 border-current border-t-transparent rounded-full animate-spin"></div>

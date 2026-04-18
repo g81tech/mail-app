@@ -22,19 +22,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const authRepository = new AuthRepositoryImpl();
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(() => authRepository.getToken());
+  const [role, setRole] = useState<Role | null>(() => authRepository.getRole());
+  const [isLoading] = useState(false);
 
   useEffect(() => {
-    const savedToken = authRepository.getToken();
-    const savedRole = authRepository.getRole();
-
-    if (savedToken && savedRole) {
-      setToken(savedToken);
-      setRole(savedRole);
-    }
-    setIsLoading(false);
+    // Se precisarmos de lógica extra no mount, mas por enquanto a inicialização síncrona basta.
   }, []);
 
   const login = useCallback(async (credentials: AuthCredentials): Promise<Role> => {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AccountRepositoryImpl } from "@/data/repositories/account.repository.impl";
 import { Account } from "@/domain/entities/account";
+import { ApiError } from "@/domain/entities/auth";
 import { formatBytes } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,8 +57,8 @@ export default function UserAccountPage() {
       });
       setAccount(updated);
       toast.success("Perfil atualizado com sucesso!");
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao atualizar perfil.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao atualizar perfil.");
     } finally {
       setIsSavingProfile(false);
     }
@@ -76,8 +77,8 @@ export default function UserAccountPage() {
       toast.success("Senha alterada com sucesso!");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao alterar senha.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao alterar senha.");
     } finally {
       setIsSavingPassword(false);
     }

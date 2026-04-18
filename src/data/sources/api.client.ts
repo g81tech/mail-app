@@ -1,3 +1,4 @@
+import { AccessToken } from "@/domain/entities/auth";
 import axios from "axios";
 import Cookies from "js-cookie";
 
@@ -59,13 +60,16 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshResponse = await axios.post<any>(
+        const refreshResponse = await axios.post<{ data: AccessToken } | AccessToken>(
           `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1"}/auth/refresh`,
           { refresh_token: refreshToken }
         );
 
         // A resposta já é o dado puro (o interceptor de request não aplica aqui pois usamos axios direto)
-        const responseData = refreshResponse.data?.data || refreshResponse.data;
+        const responseData = "data" in refreshResponse.data && refreshResponse.data.data
+          ? (refreshResponse.data.data as AccessToken)
+          : (refreshResponse.data as AccessToken);
+
         const newAccessToken: string = responseData.access_token;
         const newRefreshToken: string | undefined = responseData.refresh_token;
         const expiresIn: number = responseData.expires_in ?? 1;
@@ -80,7 +84,7 @@ apiClient.interceptors.response.use(
         onRefreshDone(newAccessToken);
 
         return apiClient(originalRequest);
-      } catch (refreshError) {
+      } catch {
         // Refresh falhou: logout total
         Cookies.remove("access_token");
         Cookies.remove("refresh_token");

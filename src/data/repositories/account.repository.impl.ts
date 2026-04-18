@@ -4,13 +4,13 @@ import { ApiResponse } from "../../domain/entities/auth";
 import apiClient from "../sources/api.client";
 
 export class AccountRepositoryImpl implements IAccountRepository {
-  private mapAccount(data: any): Account {
+  private mapAccount(data: Record<string, unknown>): Account {
     return {
-      ...data,
+      ...(data as unknown as Account),
       quota: Number(data.quota || 0),
       usedQuota: Number(data.usedQuota || 0),
       roles: Array.isArray(data.roles) 
-        ? data.roles.map((role: any) => {
+        ? data.roles.map((role: string | Role) => {
             if (typeof role === "string") {
               return {
                 key: role,
@@ -24,52 +24,52 @@ export class AccountRepositoryImpl implements IAccountRepository {
   }
 
   async listAccounts(page: number, limit: number): Promise<ListResponse<Account>> {
-    const response = await apiClient.get<any, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
+    const response = await apiClient.get<unknown, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
     if (response.error) throw new Error(response.error);
     
     return {
-      items: response.data.items.map(acc => this.mapAccount(acc)),
+      items: response.data.items.map(acc => this.mapAccount(acc as unknown as Record<string, unknown>)),
       total: response.data.total
     };
   }
 
   async getAccountById(id: number): Promise<Account> {
-    const response = await apiClient.get<any, ApiResponse<Account>>(`/admin/accounts/${id}`);
+    const response = await apiClient.get<unknown, ApiResponse<Account>>(`/admin/accounts/${id}`);
     if (response.error) throw new Error(response.error);
-    return this.mapAccount(response.data);
+    return this.mapAccount(response.data as unknown as Record<string, unknown>);
   }
 
   async createAccount(payload: CreateAccountPayload): Promise<Account> {
-    const response = await apiClient.post<any, ApiResponse<Account>>("/admin/accounts", payload);
+    const response = await apiClient.post<unknown, ApiResponse<Account>>("/admin/accounts", payload);
     if (response.error) throw new Error(response.error);
-    return this.mapAccount(response.data);
+    return this.mapAccount(response.data as unknown as Record<string, unknown>);
   }
 
   async updateAccount(id: number, payload: UpdateAccountPayload): Promise<Account> {
-    const response = await apiClient.patch<any, ApiResponse<Account>>(`/admin/accounts/${id}`, payload);
+    const response = await apiClient.patch<unknown, ApiResponse<Account>>(`/admin/accounts/${id}`, payload);
     if (response.error) throw new Error(response.error);
-    return this.mapAccount(response.data);
+    return this.mapAccount(response.data as unknown as Record<string, unknown>);
   }
 
   async deleteAccount(id: number): Promise<void> {
-    const response = await apiClient.delete<any, ApiResponse<void>>(`/admin/accounts/${id}`);
+    const response = await apiClient.delete<unknown, ApiResponse<void>>(`/admin/accounts/${id}`);
     if (response.error) throw new Error(response.error);
   }
 
   async getUserAccount(): Promise<Account> {
-    const response = await apiClient.get<any, ApiResponse<Account>>("/user/account");
+    const response = await apiClient.get<unknown, ApiResponse<Account>>("/user/account");
     if (response.error) throw new Error(response.error);
-    return this.mapAccount(response.data);
+    return this.mapAccount(response.data as unknown as Record<string, unknown>);
   }
 
   async updateUserAccount(payload: UpdateAccountPayload): Promise<Account> {
-    const response = await apiClient.patch<any, ApiResponse<Account>>("/user/account", payload);
+    const response = await apiClient.patch<unknown, ApiResponse<Account>>("/user/account", payload);
     if (response.error) throw new Error(response.error);
-    return this.mapAccount(response.data);
+    return this.mapAccount(response.data as unknown as Record<string, unknown>);
   }
 
   async getRoles(): Promise<Role[]> {
-    const response = await apiClient.get<any, ApiResponse<Role[] | string[]>>("/admin/roles");
+    const response = await apiClient.get<unknown, ApiResponse<Role[] | string[]>>("/admin/roles");
     if (response.error) throw new Error(response.error);
     
     // If the API returns strings, map them to Role objects
@@ -84,7 +84,7 @@ export class AccountRepositoryImpl implements IAccountRepository {
   }
 
   async resetPassword(id: number): Promise<void> {
-    const response = await apiClient.post<any, ApiResponse<void>>(`/admin/accounts/${id}/reset-password`, {});
+    const response = await apiClient.post<unknown, ApiResponse<void>>(`/admin/accounts/${id}/reset-password`, {});
     if (response.error) throw new Error(response.error);
   }
 }

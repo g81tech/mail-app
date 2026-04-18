@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AccountRepositoryImpl } from "@/data/repositories/account.repository.impl";
 import { Account, CreateAccountPayload, Role, UpdateAccountPayload } from "@/domain/entities/account";
+import { ApiError } from "@/domain/entities/auth";
 import { formatBytes, cn } from "@/lib/utils";
 import {
   Table,
@@ -25,19 +26,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   MoreHorizontal,
-  Plus,
   Search,
   UserPlus,
   Mail,
-  HardDrive,
   Trash2,
   Edit2,
   RefreshCw,
-  Lock,
   Users,
-  Eye,
   Shuffle,
-  ShieldCheck,
   UserX,
   UserCheck,
   AlertTriangle,
@@ -63,7 +59,7 @@ const accountRepo = new AccountRepositoryImpl();
 export default function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState({ page: 1 });
+  const [_page] = useState({ page: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -88,15 +84,15 @@ export default function AdminAccountsPage() {
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await accountRepo.listAccounts(page.page, 10);
+      const data = await accountRepo.listAccounts(_page.page, 10);
       setAccounts(data.items);
       setTotal(data.total);
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao carregar contas.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao carregar contas.");
     } finally {
       setIsLoading(false);
     }
-  }, [page.page]);
+  }, [_page.page]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -142,8 +138,8 @@ export default function AdminAccountsPage() {
         status: "active"
       });
       fetchAccounts();
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao criar conta.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao criar conta.");
     }
   };
 
@@ -155,7 +151,7 @@ export default function AdminAccountsPage() {
         description: editingAccount.description,
         quota: editingAccount.quota,
         emails: editingAccount.emails,
-        status: editingAccount.status as any,
+        status: editingAccount.status as "active" | "suspended",
         recovery_email: editingAccount.recovery_email
       };
 
@@ -163,8 +159,8 @@ export default function AdminAccountsPage() {
       toast.success("Conta atualizada com sucesso!");
       setIsEditModalOpen(false);
       fetchAccounts();
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao atualizar conta.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao atualizar conta.");
     }
   };
 
@@ -174,8 +170,8 @@ export default function AdminAccountsPage() {
       await accountRepo.updateAccount(account.id, { status: newStatus });
       toast.success(`Conta ${newStatus === "active" ? "reativada" : "desativada"} com sucesso!`);
       fetchAccounts();
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao alterar status.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao alterar status.");
     }
   };
 
@@ -186,8 +182,8 @@ export default function AdminAccountsPage() {
       toast.success("Conta excluída permanentemente.");
       setIsDeleteModalOpen(false);
       fetchAccounts();
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao excluir conta.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao excluir conta.");
     }
   };
 
@@ -197,11 +193,12 @@ export default function AdminAccountsPage() {
     try {
       await accountRepo.resetPassword(editingAccount.id);
       toast.success("Senha resetada! O usuário receberá a nova senha no e-mail de recuperação.");
-    } catch (error: any) {
-      if (error.status === 422 || error.error?.includes("422") || error.error?.toLowerCase().includes("recupera")) {
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      if (err.status === 422 || err.error?.includes("422") || err.error?.toLowerCase().includes("recupera")) {
         toast.error("Este usuário não possui e-mail de recuperação cadastrado.");
       } else {
-        toast.error(error.error || "Erro ao resetar senha.");
+        toast.error(err.error || "Erro ao resetar senha.");
       }
     } finally {
       setIsResettingPassword(false);

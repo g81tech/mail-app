@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/presentation/state/auth.context";
+import { ApiError } from "@/domain/entities/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,8 +57,8 @@ export default function LoginPage() {
       } else {
         router.push("/user/account");
       }
-    } catch (error: any) {
-      toast.error(error.error || "Credenciais inválidas ou erro no servidor.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Credenciais inválidas ou erro no servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -70,8 +71,8 @@ export default function LoginPage() {
       await recoverPassword({ identifier: recoveryIdentifier, recovery_email: recoveryEmail });
       toast.success("Se os dados estiverem corretos, você receberá um e-mail em breve!");
       setIsRecoveryOpen(false);
-    } catch (error: any) {
-      toast.error(error.error || "Erro ao solicitar recuperação.");
+    } catch (error: unknown) {
+      toast.error((error as ApiError).error || "Erro ao solicitar recuperação.");
     } finally {
       setIsRecovering(false);
     }

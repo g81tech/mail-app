@@ -22,5 +22,9 @@ export interface RecoverPasswordPayload {
 export interface ApiResponse<T> {
   data: T;
   error: string | null;
-  meta: Record<string, any> | null;
+  meta: Record<string, unknown> | null;
+}
+export interface ApiError {
+  error: string;
+  status?: number;
 }

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/presentation/state/auth.context";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Users,
   LayoutDashboard,
@@ -24,20 +24,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { isAuthenticated, role, logout, isLoading, greetingMessage } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [guardPassed, setGuardPassed] = useState(false);
-
   useEffect(() => {
     if (isLoading) return;
 
     if (!isAuthenticated || role?.key !== "admin-user") {
       router.replace("/login");
-      return;
     }
-
-    setGuardPassed(true);
   }, [isAuthenticated, role, isLoading, router]);
 
-  if (!guardPassed) {
+  if (isLoading || !isAuthenticated || role?.key !== "admin-user") {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-4">
