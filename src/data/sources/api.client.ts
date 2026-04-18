@@ -3,7 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://mail-adm-backend.g81.com.br/api/v1",
 });
 
 apiClient.interceptors.request.use((config) => {
