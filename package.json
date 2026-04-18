@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pages:build": "npx @cloudflare/next-on-pages"
+    "build:cloudflare": "opennextjs-cloudflare",
+    "deploy:cloudflare": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
@@ -37,7 +38,7 @@
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@cloudflare/next-on-pages": "^1.16.0",
-    "wrangler": "^3.111.0"
+    "@opennextjs/cloudflare": "latest",
+    "wrangler": "latest"
   }
 }
