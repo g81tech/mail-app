@@ -1,0 +1,8 @@
+name = "mail-app"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".open-next/assets"
+
+[vars]
+# Variáveis de ambiente podem ser adicionadas aqui ou no Dashboard do Cloudflare
+# NEXT_PUBLIC_API_URL = "https://mail-adm-backend.g81.com.br/api/v1"
