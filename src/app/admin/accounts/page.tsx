@@ -60,6 +60,25 @@ const accountRepo = new AccountRepositoryImpl();
 
 const PAGE_LIMIT = 10;
 
+const makeRandomPassword = () => {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+  let pass = "";
+  for (let i = 0; i < 16; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+};
+
+const makeEmptyAccount = (): CreateAccountPayload => ({
+  name: "",
+  password: makeRandomPassword(),
+  description: "",
+  quota: 1024 * 1024 * 1024,
+  emails: [],
+  recovery_email: "",
+  status: "active"
+});
+
 export default function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [total, setTotal] = useState(0);
@@ -78,16 +97,8 @@ export default function AdminAccountsPage() {
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
-  // Create Form State
-  const [newAccount, setNewAccount] = useState<CreateAccountPayload>({
-    name: "",
-    password: "",
-    description: "",
-    quota: 1024 * 1024 * 1024, // 1GB default
-    emails: [],
-    recovery_email: "",
-    status: "active"
-  });
+  // Create Form State — pre-fill with a random password on first render
+  const [newAccount, setNewAccount] = useState<CreateAccountPayload>(makeEmptyAccount);
 
   // Debounce search: wait 400ms after the user stops typing
   const handleSearchChange = (value: string) => {
@@ -135,14 +146,8 @@ export default function AdminAccountsPage() {
   }, [fetchRoles]);
 
   const generateRandomPassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-    let pass = "";
-    for (let i = 0; i < 16; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    if (!editingAccount) {
-      setNewAccount({ ...newAccount, password: pass });
-    }
+    const pass = makeRandomPassword();
+    setNewAccount(prev => ({ ...prev, password: pass }));
     toast.info("Senha aleatória gerada!");
   };
 
@@ -152,15 +157,7 @@ export default function AdminAccountsPage() {
       await accountRepo.createAccount(newAccount);
       toast.success("Conta criada com sucesso!");
       setIsCreateModalOpen(false);
-      setNewAccount({
-        name: "",
-        password: "",
-        description: "",
-        quota: 1024 * 1024 * 1024,
-        emails: [],
-        recovery_email: "",
-        status: "active"
-      });
+      setNewAccount(makeEmptyAccount());
       fetchAccounts();
     } catch (error: unknown) {
       toast.error((error as ApiError).error || "Erro ao criar conta.");
@@ -473,7 +470,13 @@ export default function AdminAccountsPage() {
       </div>
 
       {/* Create Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+      <Dialog
+        open={isCreateModalOpen}
+        onOpenChange={(open) => {
+          setIsCreateModalOpen(open);
+          if (!open) setNewAccount(makeEmptyAccount());
+        }}
+      >
         <DialogContent className="bg-slate-950 border-white/5 text-slate-200 sm:max-w-xl backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-10">
           <DialogHeader>
             <DialogTitle className="text-3xl font-black text-white px-1 tracking-tight">Expandir Rede</DialogTitle>
@@ -481,87 +484,89 @@ export default function AdminAccountsPage() {
               Configure uma nova identidade digital no servidor.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateAccount} className="space-y-8 pt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">E-mail Principal</Label>
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-brand-light transition-colors" />
-                    <Input
-                      placeholder="usuario@dominio.com"
-                      className="bg-slate-900 border-white/5 h-14 pl-12 rounded-2xl text-white font-medium"
-                      required
-                      value={newAccount.name}
-                      onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                    />
-                  </div>
-                </div>
+          <form onSubmit={handleCreateAccount} className="space-y-6 pt-8">
 
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Senha de Acesso</Label>
-                  <div className="flex gap-2">
-                    <PasswordInput
-                      className="bg-slate-900 border-white/5 h-14 rounded-2xl flex-1 font-medium"
-                      required
-                      value={newAccount.password}
-                      onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-14 w-14 rounded-2xl border border-white/5 text-brand-gold hover:bg-brand-gold/10"
-                      onClick={generateRandomPassword}
-                    >
-                      <Shuffle className="w-5 h-5" />
-                    </Button>
-                  </div>
+            {/* Nome Completo — campo principal, destaque total */}
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Nome Para Exibição</Label>
+              <Input
+                placeholder="João Silva"
+                className="bg-slate-900 border-white/5 h-16 rounded-2xl text-white text-lg font-semibold px-5"
+                value={newAccount.description}
+                onChange={(e) => setNewAccount(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+
+            {/* E-mail + Senha em grid 2 colunas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">E-mail Principal</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-brand-light transition-colors" />
+                  <Input
+                    placeholder="usuario@dominio.com"
+                    className="bg-slate-900 border-white/5 h-14 pl-12 rounded-2xl text-white font-medium"
+                    required
+                    value={newAccount.name}
+                    onChange={(e) => setNewAccount(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">E-mail de Recuperação</Label>
-                  <Input
-                    placeholder="seguranca@backup.com"
-                    type="email"
-                    className="bg-slate-900 border-white/5 h-14 rounded-2xl text-white font-medium"
-                    value={newAccount.recovery_email}
-                    onChange={(e) => setNewAccount({ ...newAccount, recovery_email: e.target.value })}
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Senha de Acesso</Label>
+                <div className="flex gap-2">
+                  <PasswordInput
+                    className="bg-slate-900 border-white/5 h-14 rounded-2xl flex-1 font-medium"
+                    required
+                    value={newAccount.password}
+                    onChange={(e) => setNewAccount(prev => ({ ...prev, password: e.target.value }))}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Quota (GB)</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        placeholder="1"
-                        className="bg-slate-900 border-white/5 h-14 rounded-2xl text-white font-medium pr-16"
-                        onChange={(e) => setNewAccount({ ...newAccount, quota: Math.round((parseFloat(e.target.value) || 1) * 1024 * 1024 * 1024) })}
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black uppercase">GB</span>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Nome Completo</Label>
-                    <Input
-                      placeholder="João Silva"
-                      className="bg-slate-900 border-white/5 h-14 rounded-2xl text-white font-medium"
-                      value={newAccount.description}
-                      onChange={(e) => setNewAccount({ ...newAccount, description: e.target.value })}
-                    />
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-14 w-14 rounded-2xl border border-white/5 text-brand-gold hover:bg-brand-gold/10 shrink-0"
+                    onClick={generateRandomPassword}
+                    title="Gerar senha aleatória"
+                  >
+                    <Shuffle className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="pt-8 flex-col sm:flex-row gap-4 border-t border-white/5">
-              <Button type="button" variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="rounded-2xl h-14 flex-1 font-black uppercase tracking-widest text-xs text-slate-500">Descartar</Button>
-              <Button type="submit" variant="brandStrong" className="h-14 flex-1 font-black uppercase tracking-widest text-xs">Finalizar Registro</Button>
+            {/* E-mail de recuperação + Quota */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">E-mail de Recuperação</Label>
+                <Input
+                  placeholder="seguranca@backup.com"
+                  type="email"
+                  className="bg-slate-900 border-white/5 h-14 rounded-2xl text-white font-medium"
+                  value={newAccount.recovery_email}
+                  onChange={(e) => setNewAccount(prev => ({ ...prev, recovery_email: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Quota (GB)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    placeholder="1"
+                    className="bg-slate-900 border-white/5 h-14 rounded-2xl text-white font-medium pr-16"
+                    onChange={(e) => setNewAccount(prev => ({ ...prev, quota: Math.round((parseFloat(e.target.value) || 1) * 1024 * 1024 * 1024) }))}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black uppercase">GB</span>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-6 flex-col sm:flex-row gap-4 border-t border-white/5">
+              <Button type="button" variant="ghost" onClick={() => { setIsCreateModalOpen(false); setNewAccount(makeEmptyAccount()); }} className="rounded-2xl h-14 flex-1 font-black uppercase tracking-widest text-xs text-slate-500">Descartar</Button>
+              <Button type="submit" variant="brand" className="h-14 flex-1 font-black uppercase tracking-widest text-xs">Finalizar Registro</Button>
             </DialogFooter>
           </form>
         </DialogContent>
