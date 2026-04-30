@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AccountRepositoryImpl } from "@/data/repositories/account.repository.impl";
 import { Account, CreateAccountPayload, Role, UpdateAccountPayload } from "@/domain/entities/account";
 import { ApiError } from "@/domain/entities/auth";
@@ -37,7 +37,9 @@ import {
   UserX,
   UserCheck,
   AlertTriangle,
-  KeyRound
+  KeyRound,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -56,19 +58,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const accountRepo = new AccountRepositoryImpl();
 
+const PAGE_LIMIT = 10;
+
 export default function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [total, setTotal] = useState(0);
-  const [_page] = useState({ page: 1 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   // Create Form State
   const [newAccount, setNewAccount] = useState<CreateAccountPayload>({
@@ -81,10 +89,25 @@ export default function AdminAccountsPage() {
     status: "active"
   });
 
+  // Debounce search: wait 400ms after the user stops typing
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setCurrentPage(1); // reset to first page on new search
+      setDebouncedSearch(value);
+    }, 400);
+  };
+
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await accountRepo.listAccounts(_page.page, 10);
+      let data;
+      if (debouncedSearch.trim()) {
+        data = await accountRepo.searchAccounts(debouncedSearch.trim(), currentPage, PAGE_LIMIT);
+      } else {
+        data = await accountRepo.listAccounts(currentPage, PAGE_LIMIT);
+      }
       setAccounts(data.items);
       setTotal(data.total);
     } catch (error: unknown) {
@@ -92,7 +115,7 @@ export default function AdminAccountsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [_page.page]);
+  }, [currentPage, debouncedSearch]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -105,8 +128,11 @@ export default function AdminAccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
+  }, [fetchAccounts]);
+
+  useEffect(() => {
     fetchRoles();
-  }, [fetchAccounts, fetchRoles]);
+  }, [fetchRoles]);
 
   const generateRandomPassword = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
@@ -114,9 +140,7 @@ export default function AdminAccountsPage() {
     for (let i = 0; i < 16; i++) {
       pass += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    if (editingAccount) {
-      // Logic for editing handled in its own state update
-    } else {
+    if (!editingAccount) {
       setNewAccount({ ...newAccount, password: pass });
     }
     toast.info("Senha aleatória gerada!");
@@ -205,10 +229,8 @@ export default function AdminAccountsPage() {
     }
   };
 
-  const filteredAccounts = accounts.filter(acc =>
-    acc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    acc.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // accounts is already the current page from the server — no client-side filter needed
+  const displayedAccounts = accounts;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -249,7 +271,7 @@ export default function AdminAccountsPage() {
                   placeholder="Pesquisar por email ou nome..."
                   className="pl-14 h-14 bg-slate-950/80 border-slate-800 text-slate-200 focus:ring-4 focus:ring-brand-gold/10 focus:border-brand-gold/40 rounded-2xl transition-all"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
             </div>
@@ -275,7 +297,7 @@ export default function AdminAccountsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : filteredAccounts.length === 0 ? (
+                ) : displayedAccounts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-96 text-center">
                       <div className="flex flex-col items-center justify-center gap-4 opacity-20">
@@ -285,7 +307,7 @@ export default function AdminAccountsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredAccounts.map((account) => (
+                  displayedAccounts.map((account) => (
                     <TableRow key={account.id} className="border-white/5 hover:bg-white/[0.03] transition-all duration-500 group">
                       <TableCell className="py-8 px-10">
                         <div className="flex items-center gap-5">
@@ -389,6 +411,64 @@ export default function AdminAccountsPage() {
               </TableBody>
             </Table>
           </CardContent>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-10 py-6 border-t border-white/5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Página {currentPage} de {totalPages} &mdash; {total} contas
+              </span>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  className="h-10 w-10 p-0 rounded-2xl border border-white/5 text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "..." ? (
+                        <span key={`dots-${idx}`} className="text-slate-600 px-1 text-xs font-black">…</span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setCurrentPage(item as number)}
+                          disabled={isLoading}
+                          className={cn(
+                            "h-10 w-10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all",
+                            currentPage === item
+                              ? "bg-brand-gold/20 text-brand-light border border-brand-gold/30"
+                              : "text-slate-500 hover:bg-white/5 hover:text-white border border-transparent"
+                          )}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )
+                  }
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || isLoading}
+                  className="h-10 w-10 p-0 rounded-2xl border border-white/5 text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 

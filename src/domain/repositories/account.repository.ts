@@ -2,6 +2,7 @@ import { Account, ListResponse, CreateAccountPayload, UpdateAccountPayload, Role
 
 export interface IAccountRepository {
   listAccounts(page: number, limit: number): Promise<ListResponse<Account>>;
+  searchAccounts(query: string, page: number, limit: number): Promise<ListResponse<Account>>;
   getAccountById(id: number): Promise<Account>;
   createAccount(payload: CreateAccountPayload): Promise<Account>;
   updateAccount(id: number, payload: UpdateAccountPayload): Promise<Account>;

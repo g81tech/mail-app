@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/presentation/state/auth.context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   LayoutDashboard,
@@ -24,15 +24,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { isAuthenticated, role, logout, isLoading, greetingMessage } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  useEffect(() => {
-    if (isLoading) return;
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || isLoading) return;
     if (!isAuthenticated || role?.key !== "admin-user") {
       router.replace("/login");
     }
-  }, [isAuthenticated, role, isLoading, router]);
+  }, [mounted, isAuthenticated, role, isLoading, router]);
 
-  if (isLoading || !isAuthenticated || role?.key !== "admin-user") {
+  // Before mount: render the same shell on server AND client (avoids hydration mismatch)
+  if (!mounted || isLoading || !isAuthenticated || role?.key !== "admin-user") {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-4">

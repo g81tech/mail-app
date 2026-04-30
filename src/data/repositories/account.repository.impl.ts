@@ -24,12 +24,24 @@ export class AccountRepositoryImpl implements IAccountRepository {
   }
 
   async listAccounts(page: number, limit: number): Promise<ListResponse<Account>> {
-    const response = await apiClient.get<unknown, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
+    const response = await apiClient.get<any, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
     if (response.error) throw new Error(response.error);
     
     return {
-      items: response.data.items.map(acc => this.mapAccount(acc as unknown as Record<string, unknown>)),
-      total: response.data.total
+      items: (response.data.items ?? []).map(acc => this.mapAccount(acc)),
+      total: response.data.total ?? 0
+    };
+  }
+
+  async searchAccounts(query: string, page: number, limit: number): Promise<ListResponse<Account>> {
+    const response = await apiClient.get<any, ApiResponse<ListResponse<Account>>>(
+      `/admin/accounts/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`
+    );
+    if (response.error) throw new Error(response.error);
+
+    return {
+      items: (response.data.items ?? []).map(acc => this.mapAccount(acc)),
+      total: response.data.total ?? 0
     };
   }
 
