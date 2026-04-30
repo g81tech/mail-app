@@ -4,12 +4,13 @@ import { ApiResponse } from "../../domain/entities/auth";
 import apiClient from "../sources/api.client";
 
 export class AccountRepositoryImpl implements IAccountRepository {
-  private mapAccount(data: Record<string, unknown>): Account {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapAccount(data: any): Account {
     return {
-      ...(data as unknown as Account),
+      ...data,
       quota: Number(data.quota || 0),
       usedQuota: Number(data.usedQuota || 0),
-      roles: Array.isArray(data.roles) 
+      roles: Array.isArray(data.roles)
         ? data.roles.map((role: string | Role) => {
             if (typeof role === "string") {
               return {
@@ -24,7 +25,7 @@ export class AccountRepositoryImpl implements IAccountRepository {
   }
 
   async listAccounts(page: number, limit: number): Promise<ListResponse<Account>> {
-    const response = await apiClient.get<any, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
+    const response = await apiClient.get<unknown, ApiResponse<ListResponse<Account>>>(`/admin/accounts?page=${page}&limit=${limit}`);
     if (response.error) throw new Error(response.error);
     
     return {
@@ -34,7 +35,7 @@ export class AccountRepositoryImpl implements IAccountRepository {
   }
 
   async searchAccounts(query: string, page: number, limit: number): Promise<ListResponse<Account>> {
-    const response = await apiClient.get<any, ApiResponse<ListResponse<Account>>>(
+    const response = await apiClient.get<unknown, ApiResponse<ListResponse<Account>>>(
       `/admin/accounts/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`
     );
     if (response.error) throw new Error(response.error);

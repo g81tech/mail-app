@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/presentation/state/auth.context";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Users,
   LayoutDashboard,
@@ -24,10 +24,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { isAuthenticated, role, logout, isLoading, greetingMessage } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const mountedRef = useRef(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMounted(true);
+    }
   }, []);
 
   useEffect(() => {
